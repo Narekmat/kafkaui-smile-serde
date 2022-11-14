@@ -1,0 +1,46 @@
+name: Release
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{steps.build.outputs.version}}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: 'maven'
+
+      - name: Build with Maven
+        id: build
+        run: |
+          ./mvnw -B -ntp versions:set -DnewVersion=${{ github.event.release.tag_name }}
+          ./mvnw -B -V -ntp clean package -Pprod -DskipTests
+          export VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Upload files to a GitHub release
+        uses: svenstaro/upload-release-action@2.3.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: kafka-ui-api/target/kafka-ui-api-${{ steps.build.outputs.version }}.jar
+          tag: ${{ github.event.release.tag_name }}
+
+      - name: Archive JAR
+        uses: actions/upload-artifact@v3
+        with:
+          name: kafka-ui-${{ steps.build.outputs.version }}
+          path: kafka-ui-api/target/kafka-ui-api-${{ steps.build.outputs.version }}.jar
