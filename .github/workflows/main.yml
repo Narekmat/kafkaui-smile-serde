@@ -27,8 +27,8 @@ jobs:
       - name: Build with Maven
         id: build
         run: |
-          ./mvnw -B -ntp versions:set -DnewVersion=${{ github.event.release.tag_name }}
-          ./mvnw -B -V -ntp clean package -Pprod -DskipTests
+          mvn -B -ntp versions:set -DnewVersion=${{ github.event.release.tag_name }}
+          mvn -B -V -ntp clean package -Pprod -DskipTests
           export VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
